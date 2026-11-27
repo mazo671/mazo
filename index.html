@@ -1,0 +1,638 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Memory Gym</title>
+<style>
+:root{
+  --bg:#f5f6fa; --card:#fff; --text:#1d2230; --muted:#6b7385; --line:#dfe3ec;
+  --accent:#5b6cff; --accent-text:#fff; --ok:#1f9d55; --okbg:#dcf5e5; --bad:#d6334a; --badbg:#fde0e4;
+  --warn:#b7791f; --warnbg:#fdf0d2; --hl:#fff3b0;
+}
+:root[data-theme="dark"]{
+  --bg:#11141c; --card:#1b202c; --text:#e8ebf4; --muted:#8e97ad; --line:#2b3243;
+  --accent:#7d8bff; --accent-text:#10131c; --ok:#4ade80; --okbg:#173626; --bad:#ff6b81; --badbg:#3d1c26;
+  --warn:#f5c04e; --warnbg:#3b3017; --hl:#4a4318;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+#wrap{max-width:900px;margin:0 auto;padding:16px}
+header.top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+header.top h1{font-size:1.25rem;margin:0;cursor:pointer}
+button{font:inherit;color:inherit;cursor:pointer}
+.btn{background:var(--accent);color:var(--accent-text);border:0;border-radius:10px;padding:10px 18px;font-weight:600}
+.btn.ghost{background:transparent;color:var(--text);border:1px solid var(--line)}
+.btn.small{padding:6px 12px;font-size:.9rem}
+.btn:disabled{opacity:.5;cursor:default}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px}
+.muted{color:var(--muted)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px}
+.mode{text-align:left;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px}
+.mode:hover{border-color:var(--accent)}
+.mode .ic{font-size:1.8rem}
+.mode b{display:block}
+.mode span{color:var(--muted);font-size:.85rem}
+.row-flex{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.chip{border:1px solid var(--line);background:transparent;border-radius:999px;padding:4px 12px;font-size:.9rem}
+.chip:hover{border-color:var(--accent)}
+.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin:12px 0}
+.fields label{display:flex;flex-direction:column;font-size:.9rem;color:var(--muted);gap:4px}
+.fields label.chk{flex-direction:row;align-items:center;gap:8px}
+input,select{font:inherit;color:var(--text);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px}
+.bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.bar h2{margin:0;font-size:1.1rem}
+.timer{font-size:1.6rem;font-weight:700;font-variant-numeric:tabular-nums}
+.timer.low{color:var(--bad)}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}
+.big{font-size:6rem;font-weight:800;text-align:center;padding:40px 0}
+.cells{display:flex;flex-wrap:wrap;gap:10px 18px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:1.7rem;letter-spacing:.12em}
+.grp{padding:2px 6px;border-radius:6px;cursor:pointer;display:inline-flex;gap:4px}
+.grp.hl{background:var(--hl)}
+.cells.recall .grp{cursor:default;gap:3px}
+input.ci{width:2ch;width:34px;height:44px;padding:0;text-align:center;font:inherit;font-size:1.3rem;letter-spacing:0;font-family:ui-monospace,Menlo,Consolas,monospace}
+input.ci:focus,input.wi:focus,input.ni:focus{outline:2px solid var(--accent)}
+.c{display:inline-flex;flex-direction:column;align-items:center;min-width:30px;border-radius:6px;padding:2px 4px;line-height:1.1}
+.c small{font-size:.65em;opacity:.9}
+.c.ok{background:var(--okbg);color:var(--ok)}
+.c.bad{background:var(--badbg);color:var(--bad)}
+.c.blank{background:var(--line);color:var(--muted)}
+.words3{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:10px 0}
+.words3 div{background:var(--bg);border:1px solid var(--line);border-radius:12px;text-align:center;font-size:2rem;font-weight:700;padding:26px 8px}
+.wlist{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px}
+.wlist label{display:flex;align-items:center;gap:8px}
+.wlist b{min-width:28px;text-align:right;color:var(--muted);font-weight:500}
+input.wi,input.ni{flex:1;min-width:0}
+.res{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px}
+.r{display:flex;gap:8px;align-items:baseline;border-radius:8px;padding:6px 10px;font-size:.95rem;flex-wrap:wrap}
+.r b{color:var(--muted);font-weight:500;min-width:24px}
+.r em{font-style:normal;opacity:.85;margin-left:auto}
+.r.ok{background:var(--okbg);color:var(--ok)}
+.r.bad{background:var(--badbg);color:var(--bad)}
+.r.almost{background:var(--warnbg);color:var(--warn)}
+.r.blank{background:var(--line);color:var(--muted)}
+.cardgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:10px}
+.cw{display:flex;flex-direction:column;align-items:center;gap:2px}
+.cw small{color:var(--muted);font-size:.7rem}
+.pc{display:inline-flex;flex-direction:column;align-items:center;justify-content:center;width:54px;height:74px;border-radius:8px;background:#fff;border:1px solid #c9ced9;font-weight:700;line-height:1.1;color:#222}
+.pc.red{color:#d6334a}
+.pc i{font-style:normal;font-size:1.3rem}
+.em{font-size:2.2rem;line-height:1}
+.slots,.pool{display:flex;flex-wrap:wrap;gap:8px}
+.slot,.pitem{position:relative;min-width:60px;min-height:64px;display:flex;align-items:center;justify-content:center;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:4px}
+.slot small{position:absolute;top:1px;left:5px;font-size:.65rem;color:var(--muted)}
+.slot.act{outline:2px solid var(--accent)}
+.pitem.used{opacity:.3}
+.pool{margin-top:12px;border-top:1px solid var(--line);padding-top:12px}
+.pr{display:flex;flex-direction:column;align-items:center;border-radius:8px;padding:4px 8px;min-width:64px;position:relative}
+.pr small{font-size:.65rem;opacity:.8}
+.pr.ok{background:var(--okbg)} .pr.bad{background:var(--badbg)}
+.pr .corr{border-top:1px dashed var(--line);margin-top:2px;padding-top:2px;opacity:.9}
+.faces{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px}
+.face{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:10px;text-align:center}
+.face .av{width:78px;height:78px;border-radius:50%;margin:0 auto 4px;display:flex;align-items:center;justify-content:center;font-size:2.8rem}
+.face .nm{font-weight:700}
+.face input{width:100%;margin-top:4px;text-align:center}
+.score{font-size:3rem;font-weight:800;text-align:center}
+.pill{display:inline-block;border-radius:999px;padding:3px 12px;background:var(--okbg);color:var(--ok);font-weight:600}
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+th,td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left}
+th{color:var(--muted);font-weight:500}
+.hint{color:var(--muted);font-size:.85rem}
+.prog{height:8px;background:var(--line);border-radius:6px;overflow:hidden;margin:10px 0}
+.prog>div{height:100%;background:var(--accent);width:0}
+.center{text-align:center}
+svg.chart{width:100%;height:auto;background:var(--bg);border-radius:10px}
+@media (max-width:520px){.big{font-size:4.5rem}.cells{font-size:1.4rem}input.ci{width:28px;height:40px}}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <header class="top">
+    <h1 id="logo">🧠 Memory Gym</h1>
+    <div class="row-flex">
+      <button class="btn ghost small" id="statsBtn">📊 Stats</button>
+      <button class="btn ghost small" id="themeBtn" title="Toggle dark mode">🌓</button>
+    </div>
+  </header>
+  <main id="app"></main>
+</div>
+
+<script>
+'use strict';
+/* ---------- helpers ---------- */
+const $ = (s, el = document) => el.querySelector(s);
+const $$ = (s, el = document) => [...el.querySelectorAll(s)];
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const shuffle = (a, rng = Math.random) => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const chunk = (a, n) => { const out = []; for (let i = 0; i < a.length; i += n) out.push(a.slice(i, i + n)); return out; };
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+const fmt = s => { s = Math.round(s); if (s < 60) return s + 's'; const m = Math.floor(s / 60), r = s % 60; return m + 'm' + (r ? ' ' + r + 's' : ''); };
+const fmtClock = s => { s = Math.max(0, Math.ceil(s)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
+};
+const dayKey = (d = new Date()) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+
+/* ---------- timers / keyboard ---------- */
+let cleanups = [], onKey = null;
+const later = (fn, ms) => { const id = setTimeout(fn, ms); cleanups.push(() => clearTimeout(id)); return id; };
+const every = (fn, ms) => { const id = setInterval(fn, ms); cleanups.push(() => clearInterval(id)); return id; };
+function stopAll() { cleanups.forEach(f => f()); cleanups = []; onKey = null; try { speechSynthesis.cancel(); } catch {} }
+document.addEventListener('keydown', e => {
+  if (!cur) return;
+  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && cur.phase === 'recall') { e.preventDefault(); return submit(); }
+  if (onKey && onKey(e) === true) { e.preventDefault(); return; }
+  if (cur.phase === 'memorize' && e.key === 'Enter' && !cur.M.auto && !e.target.closest('button')) { e.preventDefault(); finishMem(); }
+});
+
+/* ---------- data ---------- */
+const WORDS = `apple anchor arrow banana basket beach bell bicycle bird blanket book bottle bridge broom bucket butter button cactus camel candle carpet castle cave chair cheese cherry chimney circus clock cloud clover coat compass cookie crown curtain diamond doctor dolphin donkey door dragon drum eagle engine farm feather fence finger flag flower forest fork fountain garden ghost giraffe glass glove goat guitar hammer harbor hat helmet honey horse house island jacket jungle kettle key kitchen kite ladder lake lamp leaf lemon lion lizard mirror monkey moon mountain mouse mushroom needle nest ocean onion orange owl paint palace parrot peach pencil penguin piano pillow pirate planet plate pocket pond potato pumpkin puzzle rabbit radio rainbow river robot rocket roof rope saddle sailor salad sandwich scarf scissors shadow sheep shield shoe sky snail snow spider spoon squirrel stairs star statue storm strawberry sugar sunflower sword table teapot tent tiger tomato tower train tree trumpet tunnel turtle umbrella valley village violin wagon waterfall whale wheel window witch wolf zebra bread candy desk dress drill fire frog ice jar lock map nail oven pan pear pipe ring sand sock soup stone tail tooth towel truck vase wall watch wing wool yarn`.split(/\s+/);
+const NAMES = 'Alice Ben Clara David Emma Frank Grace Henry Isla Jack Kate Liam Maya Noah Olivia Peter Quinn Rose Sam Tina Uma Victor Wendy Xavier Yara Zoe Adam Bella Carl Diana Ethan Fiona George Hannah Ian Julia Kevin Laura Mark Nina Oscar Paula Ryan Sofia Tom'.split(' ');
+const EMOJI = [...'🍎🍌🍇🍓🍒🍋🥕🌽🍕🍔🍟🍩🍪🎂🍫☕🚗🚲🚀🚂⛵🏠🏰⛺🌳🌵🌻🌹🍄🌙⭐☀🔥💧🐶🐱🐭🐰🦊🐻🐼🐸🐵🐔🐧🦉🐝🐢🐙🐬🦈🦋📚🔑🔔🎸🎹🎲⚽🏀🎾⚓⌚💡🎁👑👓🎩👟🧲🔨🔧🧸🎈'];
+const FACE_BASE = ['👨', '👩', '🧑', '👴', '👵', '👦', '👧', '🧓'];
+const TONES = ['', '🏻', '🏼', '🏽', '🏾', '🏿'];
+const SUITS = [['♠', 'black'], ['♥', 'red'], ['♦', 'red'], ['♣', 'black']];
+const RANKS = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+const cardHtml = (r, s, c) => `<span class="pc ${c}"><b>${r}</b><i>${s}</i></span>`;
+const DECK = SUITS.flatMap(([s, c]) => RANKS.map(r => ({ id: r + s, html: cardHtml(r, s, c) })));
+const NUMWORD = ['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine'];
+
+/* ---------- shared recall / score building blocks ---------- */
+function showCells(el, arr, group) {
+  el.innerHTML = '<div class="cells">' + chunk(arr, group).map(g => `<span class="grp">${g.join('')}</span>`).join('') + '</div><p class="hint">Tip: click a group to highlight it.</p>';
+  $$('.grp', el).forEach(g => g.onclick = () => g.classList.toggle('hl'));
+}
+function recallCells(el, n, group, re) {
+  const wrap = document.createElement('div'); wrap.className = 'cells recall';
+  const inputs = [];
+  chunk([...Array(n).keys()], group).forEach(g => {
+    const sp = document.createElement('span'); sp.className = 'grp';
+    g.forEach(i => {
+      const inp = document.createElement('input'); inp.className = 'ci'; inp.maxLength = 2; inp.inputMode = 'numeric'; inp.autocomplete = 'off';
+      inp.dataset.i = i; inputs[i] = inp; sp.appendChild(inp);
+    });
+    wrap.appendChild(sp);
+  });
+  inputs.forEach((inp, i) => {
+    inp.addEventListener('input', () => {
+      let v = inp.value.replace(/\s/g, '').slice(-1);
+      if (!re.test(v)) v = '';
+      inp.value = v;
+      if (v && inputs[i + 1]) inputs[i + 1].focus();
+    });
+    inp.addEventListener('keydown', e => {
+      if (e.key === 'Backspace' && !inp.value && inputs[i - 1]) { inputs[i - 1].value = ''; inputs[i - 1].focus(); e.preventDefault(); }
+      else if (e.key === 'ArrowLeft' && inputs[i - 1]) inputs[i - 1].focus();
+      else if (e.key === 'ArrowRight' && inputs[i + 1]) inputs[i + 1].focus();
+    });
+    inp.addEventListener('paste', e => {
+      const t = [...(e.clipboardData.getData('text'))].filter(ch => re.test(ch));
+      if (!t.length) return;
+      e.preventDefault();
+      t.forEach((ch, k) => { if (inputs[i + k]) inputs[i + k].value = ch; });
+      const last = inputs[Math.min(i + t.length, n - 1)]; last.focus();
+    });
+  });
+  el.innerHTML = ''; el.appendChild(wrap);
+  el.insertAdjacentHTML('beforeend', '<p class="hint">Type the sequence — it jumps to the next box automatically. Ctrl+Enter submits.</p>');
+  inputs[0].focus();
+  return () => inputs.map(i => i.value);
+}
+function scoreCells(d, a, group) {
+  let correct = 0;
+  const html = '<div class="cells">' + chunk([...d.keys()], group).map(g => '<span class="grp">' + g.map(i => {
+    const u = a[i] || '';
+    if (u === d[i]) { correct++; return `<span class="c ok">${d[i]}</span>`; }
+    if (!u) return `<span class="c blank">·<small>${d[i]}</small></span>`;
+    return `<span class="c bad">${esc(u)}<small>${d[i]}</small></span>`;
+  }).join('') + '</span>').join('') + '</div><p class="hint">Green = correct · red = your answer with the correct digit underneath · grey = left blank.</p>';
+  return { correct, total: d.length, html };
+}
+const norm = t => String(t || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+function lev(a, b) {
+  const m = a.length, n = b.length; if (!m) return n; if (!n) return m;
+  let prev = Array.from({ length: n + 1 }, (_, j) => j);
+  for (let i = 1; i <= m; i++) { const cur = [i]; for (let j = 1; j <= n; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); prev = cur; }
+  return prev[n];
+}
+function cmpWord(user, correct, typo) {
+  const u = norm(user), c = norm(correct);
+  if (!u) return 'blank';
+  if (u === c) return 'ok';
+  if (c.length >= 4 && lev(u, c) === 1) return typo ? 'ok' : 'almost';
+  return 'bad';
+}
+function recallWords(el, n) {
+  el.innerHTML = '<div class="wlist">' + Array.from({ length: n }, (_, i) => `<label><b>${i + 1}</b><input class="wi" autocomplete="off" autocapitalize="off" spellcheck="false"></label>`).join('') + '</div><p class="hint">Enter moves to the next box. Capital letters and extra spaces don\'t matter. Ctrl+Enter submits.</p>';
+  const inputs = $$('.wi', el);
+  inputs.forEach((inp, i) => inp.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.ctrlKey && !e.metaKey) { e.preventDefault(); (inputs[i + 1] || inp).focus(); } }));
+  inputs[0].focus();
+  return () => inputs.map(i => i.value);
+}
+function scoreWords(d, a, s) {
+  let correct = 0;
+  const html = '<div class="res">' + d.map((w, i) => {
+    const st = cmpWord(a[i], w, s.typo); if (st === 'ok') correct++;
+    const user = st === 'blank' ? '—' : esc(a[i]);
+    return `<div class="r ${st}"><b>${i + 1}</b><span>${user}</span>${st === 'ok' && norm(a[i]) === norm(w) ? '' : `<em>${esc(w)}</em>`}</div>`;
+  }).join('') + '</div><p class="hint">Amber = almost (one letter off' + (s.typo ? ', counted as correct' : ', not counted') + ').</p>';
+  return { correct, total: d.length, html };
+}
+function recallPicker(el, n, pool, render) {
+  const ans = Array(n).fill(null); let active = 0;
+  const byId = Object.fromEntries(pool.map(p => [p.id, p]));
+  el.innerHTML = '<div class="slots"></div><p class="hint">Click a slot, then pick the item for it. Backspace empties the slot. Ctrl+Enter submits.</p><div class="pool"></div>';
+  const slotsEl = $('.slots', el), poolEl = $('.pool', el);
+  const draw = () => {
+    slotsEl.innerHTML = ans.map((a, i) => `<button class="slot ${i === active ? 'act' : ''}" data-i="${i}"><small>${i + 1}</small>${a ? render(byId[a]) : '·'}</button>`).join('');
+    poolEl.innerHTML = pool.map(p => `<button class="pitem ${ans.includes(p.id) ? 'used' : ''}" data-id="${esc(p.id)}">${render(p)}</button>`).join('');
+  };
+  slotsEl.onclick = e => { const b = e.target.closest('.slot'); if (b) { active = +b.dataset.i; draw(); } };
+  poolEl.onclick = e => {
+    const b = e.target.closest('.pitem'); if (!b) return;
+    const id = b.dataset.id, old = ans.indexOf(id); if (old >= 0) ans[old] = null;
+    ans[active] = id;
+    let nx = -1; for (let k = 1; k <= n; k++) { const j = (active + k) % n; if (ans[j] == null) { nx = j; break; } }
+    if (nx >= 0) active = nx;
+    draw();
+  };
+  onKey = e => {
+    if (e.key === 'Backspace') { ans[active] = null; draw(); return true; }
+    if (e.key === 'ArrowLeft') { active = (active + n - 1) % n; draw(); return true; }
+    if (e.key === 'ArrowRight') { active = (active + 1) % n; draw(); return true; }
+  };
+  draw();
+  return () => ans.slice();
+}
+function scorePicker(d, a, render, pool = d) {
+  let correct = 0;
+  const html = '<div class="slots">' + d.map((it, i) => {
+    const ok = a[i] === it.id; if (ok) correct++;
+    const user = a[i] ? render(pool.find(x => x.id === a[i]) || { id: a[i], html: esc(a[i]) }) : '—';
+    return `<div class="pr ${ok ? 'ok' : 'bad'}"><small>${i + 1}</small>${user}${ok ? '' : `<span class="corr">${render(it)}</span>`}</div>`;
+  }).join('') + '</div><p class="hint">Green = correct · red = your pick with the correct item underneath.</p>';
+  return { correct, total: d.length, html };
+}
+const gridOfItems = d => '<div class="cardgrid">' + d.map((c, i) => `<div class="cw"><small>${i + 1}</small>${c.html}</div>`).join('') + '</div>';
+
+/* ---------- mode definitions ---------- */
+const num = (k, label, min, max, def, nokey) => ({ k, label, type: 'num', min, max, def, nokey });
+const sel = (k, label, opts, def, nokey) => ({ k, label, type: 'sel', opts, def, nokey });
+const chk = (k, label, def) => ({ k, label, type: 'chk', def, nokey: true });
+const RT = num('recallTime', 'Recall time limit (s, 0 = none)', 0, 3600, 0, true);
+const ALLPOOL = DECK;
+
+const MODES = {
+  digits: {
+    name: 'Digits', icon: '🔢', desc: 'Memorize random digits against the clock.',
+    fields: [num('count', 'Number of digits', 5, 1000, 30), num('time', 'Memorization time (s)', 5, 3600, 60), sel('group', 'Group size on screen', [1, 2, 3, 4, 5], 3, true), RT],
+    presets: [['Beginner', { count: 20, time: 60 }], ['Intermediate', { count: 40, time: 90 }], ['Advanced', { count: 80, time: 120 }], ['Expert', { count: 150, time: 300 }]],
+    label: s => `${s.count} digits · ${fmt(s.time)}`,
+    gen: (s, r) => Array.from({ length: s.count }, () => String(Math.floor(r() * 10))),
+    memorize: (el, d, s) => showCells(el, d, s.group),
+    recall: (el, d, s) => recallCells(el, d.length, s.group, /\d/),
+    score: (d, a, s) => scoreCells(d, a, s.group)
+  },
+  binary: {
+    name: 'Binary', icon: '💾', desc: 'Strings of 0s and 1s — a different kind of chunking.',
+    fields: [num('count', 'Number of bits', 6, 1000, 48), num('time', 'Memorization time (s)', 5, 3600, 60), sel('group', 'Group size on screen', [3, 4, 5, 6, 8], 3, true), RT],
+    presets: [['Beginner', { count: 30, time: 60 }], ['Intermediate', { count: 60, time: 60 }], ['Advanced', { count: 120, time: 90 }], ['Expert', { count: 240, time: 180 }]],
+    label: s => `${s.count} bits · ${fmt(s.time)}`,
+    gen: (s, r) => Array.from({ length: s.count }, () => r() < .5 ? '0' : '1'),
+    memorize: (el, d, s) => showCells(el, d, s.group),
+    recall: (el, d, s) => recallCells(el, d.length, s.group, /[01]/),
+    score: (d, a, s) => scoreCells(d, a, s.group)
+  },
+  words: {
+    name: 'Words', icon: '📝', desc: 'Words appear in groups of three. Recall each one by its number.',
+    fields: [num('count', 'Number of words', 3, 150, 15), num('time', 'Total memorization time (s)', 10, 3600, 120), chk('typo', 'Accept one-letter typos as correct', false), RT],
+    presets: [['Beginner', { count: 9, time: 90 }], ['Intermediate', { count: 15, time: 120 }], ['Advanced', { count: 30, time: 180 }], ['Expert', { count: 60, time: 300 }]],
+    label: s => `${s.count} words · ${fmt(s.time)}`,
+    gen: (s, r) => shuffle(WORDS, r).slice(0, s.count),
+    memorize(el, d, s, api) {
+      const groups = chunk(d, 3); let g = 0;
+      const draw = () => {
+        el.innerHTML = `<p class="muted center">Group ${g + 1} of ${groups.length}</p><div class="words3">${groups[g].map(w => `<div>${w}</div>`).join('')}</div>
+          <div class="actions" style="justify-content:center"><button class="btn ghost" id="prev" ${g === 0 ? 'disabled' : ''}>← Back</button><button class="btn" id="next">${g === groups.length - 1 ? 'Finish ✓' : 'Continue →'}</button></div>
+          <p class="hint center">Space / → = continue · ← = back · Enter = finish early</p>`;
+        $('#prev', el).onclick = prev; $('#next', el).onclick = next;
+      };
+      const next = () => { if (g === groups.length - 1) api.done(); else { g++; draw(); } };
+      const prev = () => { if (g > 0) { g--; draw(); } };
+      onKey = e => {
+        if (e.key === ' ' || e.key === 'ArrowRight') { next(); return true; }
+        if (e.key === 'ArrowLeft') { prev(); return true; }
+      };
+      draw();
+    },
+    recall: (el, d) => recallWords(el, d.length),
+    score: (d, a, s) => scoreWords(d, a, s)
+  },
+  cards: {
+    name: 'Cards', icon: '🃏', desc: 'Memorize a shuffled deck (or part of it) and rebuild the order.',
+    fields: [num('count', 'Number of cards', 2, 52, 26), num('time', 'Memorization time (s)', 10, 3600, 120), RT],
+    presets: [['Beginner', { count: 10, time: 90 }], ['Intermediate', { count: 26, time: 180 }], ['Advanced', { count: 52, time: 300 }], ['Expert', { count: 52, time: 120 }]],
+    label: s => `${s.count} cards · ${fmt(s.time)}`,
+    gen: (s, r) => shuffle(DECK, r).slice(0, s.count),
+    memorize: (el, d) => { el.innerHTML = gridOfItems(d); },
+    recall: (el, d) => recallPicker(el, d.length, DECK, p => p.html),
+    score: d => scorePicker(d, curAnswers, p => p.html, DECK)
+  },
+  faces: {
+    name: 'Names & Faces', icon: '🙂', desc: 'Learn faces with names, then name the shuffled faces.',
+    fields: [num('count', 'Number of people', 3, 24, 8), num('time', 'Memorization time (s)', 10, 3600, 90), chk('typo', 'Accept one-letter typos as correct', true), RT],
+    presets: [['Beginner', { count: 5, time: 60 }], ['Intermediate', { count: 10, time: 120 }], ['Advanced', { count: 16, time: 150 }], ['Expert', { count: 24, time: 180 }]],
+    label: s => `${s.count} people · ${fmt(s.time)}`,
+    gen(s, r) {
+      const faces = shuffle(FACE_BASE.flatMap(b => TONES.map(t => b + t)), r).slice(0, s.count);
+      const names = shuffle(NAMES, r).slice(0, s.count);
+      return faces.map((f, i) => ({ face: f, name: names[i], hue: Math.floor(r() * 360) }));
+    },
+    memorize: (el, d) => { el.innerHTML = '<div class="faces">' + d.map(p => `<div class="face"><div class="av" style="background:hsl(${p.hue} 60% 80%)">${p.face}</div><div class="nm">${p.name}</div></div>`).join('') + '</div>'; },
+    recall(el, d) {
+      const order = shuffle([...d.keys()]);
+      el.innerHTML = '<div class="faces">' + order.map(i => `<div class="face"><div class="av" style="background:hsl(${d[i].hue} 60% 80%)">${d[i].face}</div><input class="ni" data-i="${i}" autocomplete="off" autocapitalize="off" placeholder="name"></div>`).join('') + '</div><p class="hint">Faces are shuffled. Enter = next face. Ctrl+Enter submits.</p>';
+      const inputs = $$('.ni', el);
+      inputs.forEach((inp, k) => inp.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.ctrlKey && !e.metaKey) { e.preventDefault(); (inputs[k + 1] || inp).focus(); } }));
+      inputs[0].focus();
+      return () => { const out = []; inputs.forEach(inp => out[+inp.dataset.i] = inp.value); return out; };
+    },
+    score(d, a, s) {
+      let correct = 0;
+      const html = '<div class="faces">' + d.map((p, i) => {
+        const st = cmpWord(a[i], p.name, s.typo); if (st === 'ok') correct++;
+        return `<div class="face"><div class="av" style="background:hsl(${p.hue} 60% 80%)">${p.face}</div><div class="r ${st}" style="justify-content:center"><span>${st === 'blank' ? '—' : esc(a[i])}</span>${st === 'ok' && norm(a[i]) === norm(p.name) ? '' : `<em style="margin-left:6px">${p.name}</em>`}</div></div>`;
+      }).join('') + '</div>';
+      return { correct, total: d.length, html };
+    }
+  },
+  images: {
+    name: 'Images', icon: '🖼️', desc: 'Memorize a sequence of pictures, then put them back in order.',
+    fields: [num('count', 'Number of images', 3, 40, 15), num('time', 'Memorization time (s)', 10, 3600, 90), RT],
+    presets: [['Beginner', { count: 8, time: 60 }], ['Intermediate', { count: 15, time: 90 }], ['Advanced', { count: 25, time: 120 }], ['Expert', { count: 40, time: 150 }]],
+    label: s => `${s.count} images · ${fmt(s.time)}`,
+    gen: (s, r) => shuffle(EMOJI, r).slice(0, s.count).map(e => ({ id: e, html: `<span class="em">${e}</span>` })),
+    memorize: (el, d) => { el.innerHTML = gridOfItems(d); },
+    recall: (el, d) => recallPicker(el, d.length, shuffle(d), p => p.html),
+    score: d => scorePicker(d, curAnswers, p => p.html)
+  },
+  spoken: {
+    name: 'Spoken digits', icon: '🔊', auto: true, desc: 'Digits are read aloud, one at a time. No pausing, no replays.',
+    fields: [num('count', 'Number of digits', 5, 200, 20), sel('speed', 'Seconds per digit', [0.5, 0.75, 1, 1.5, 2], 1), sel('group', 'Group size on recall', [1, 2, 3, 4, 5], 3, true), RT],
+    presets: [['Beginner', { count: 10, speed: 1.5 }], ['Intermediate', { count: 20, speed: 1 }], ['Advanced', { count: 40, speed: 1 }], ['Expert', { count: 60, speed: 0.75 }]],
+    label: s => `${s.count} spoken digits · ${s.speed}s each`,
+    gen: (s, r) => Array.from({ length: s.count }, () => String(Math.floor(r() * 10))),
+    memorize(el, d, s, api) {
+      if (!('speechSynthesis' in window)) { el.innerHTML = '<p class="muted">Sorry, your browser doesn\'t support speech synthesis.</p>'; return; }
+      el.innerHTML = '<div class="center"><div class="big">🔊</div><div class="prog"><div id="pg"></div></div><p class="muted" id="pt"></p><p class="hint">Listen carefully — nothing is shown on screen.</p></div>';
+      let i = 0;
+      const tick = () => {
+        if (i >= d.length) { later(() => api.done(), 400); return; }
+        const u = new SpeechSynthesisUtterance(NUMWORD[+d[i]]); u.rate = 1.15; u.lang = 'en-US';
+        speechSynthesis.cancel(); speechSynthesis.speak(u);
+        i++; $('#pg', el).style.width = (i / d.length * 100) + '%'; $('#pt', el).textContent = `${i} / ${d.length}`;
+        later(tick, s.speed * 1000);
+      };
+      later(tick, 300);
+    },
+    recall: (el, d, s) => recallCells(el, d.length, s.group, /\d/),
+    score: (d, a, s) => scoreCells(d, a, s.group)
+  },
+  flash: {
+    name: 'Flash', icon: '⚡', auto: true, desc: 'Each item flashes briefly, then vanishes. Pure speed.',
+    fields: [sel('kind', 'Type', ['digits', 'words'], 'digits'), num('count', 'Number of items', 3, 100, 15), sel('speed', 'Seconds per item', [0.3, 0.5, 0.75, 1, 1.5, 2, 3], 1), sel('group', 'Group size on recall (digits)', [1, 2, 3, 4, 5], 3, true), RT],
+    presets: [['Beginner', { kind: 'digits', count: 10, speed: 1.5 }], ['Intermediate', { kind: 'digits', count: 20, speed: 1 }], ['Advanced', { kind: 'digits', count: 30, speed: 0.5 }], ['Words', { kind: 'words', count: 12, speed: 1.5 }]],
+    label: s => `${s.count} flashed ${s.kind} · ${s.speed}s each`,
+    gen: (s, r) => s.kind === 'words' ? shuffle(WORDS, r).slice(0, s.count) : Array.from({ length: s.count }, () => String(Math.floor(r() * 10))),
+    memorize(el, d, s, api) {
+      el.innerHTML = '<div class="center"><div class="big" id="fl">&nbsp;</div><div class="prog"><div id="pg"></div></div><p class="muted" id="pt"></p></div>';
+      let i = 0;
+      const tick = () => {
+        if (i >= d.length) { $('#fl', el).innerHTML = '&nbsp;'; later(() => api.done(), 300); return; }
+        const f = $('#fl', el); f.textContent = d[i]; if (s.kind === 'words') f.style.fontSize = '3.5rem';
+        i++; $('#pg', el).style.width = (i / d.length * 100) + '%'; $('#pt', el).textContent = `${i} / ${d.length}`;
+        later(() => { f.innerHTML = '&nbsp;'; }, Math.max(150, s.speed * 1000 - 150));
+        later(tick, s.speed * 1000);
+      };
+      later(tick, 600);
+    },
+    recall: (el, d, s) => s.kind === 'words' ? recallWords(el, d.length) : recallCells(el, d.length, s.group, /\d/),
+    score: (d, a, s) => s.kind === 'words' ? scoreWords(d, a, { typo: false }) : scoreCells(d, a, s.group)
+  }
+};
+Object.values(MODES).forEach(m => { if (!m.fields.some(f => f === RT)) m.fields.push(RT); });
+
+/* ---------- storage: settings & records ---------- */
+const getSettings = id => {
+  const saved = store.get('mm.settings', {})[id] || {}, out = {};
+  MODES[id].fields.forEach(f => out[f.k] = saved[f.k] !== undefined ? saved[f.k] : f.def);
+  return out;
+};
+const saveSettings = (id, s) => { const all = store.get('mm.settings', {}); all[id] = s; store.set('mm.settings', all); };
+const records = () => store.get('mm.records', []);
+const keyOf = (id, s) => id + '|' + MODES[id].fields.filter(f => !f.nokey).map(f => s[f.k]).join('/');
+const better = (a, b) => !b || a.correct > b.correct || (a.correct === b.correct && a.mem < b.mem);
+const bestFor = key => records().filter(r => r.key === key).reduce((b, r) => better(r, b) ? r : b, null);
+
+/* ---------- screens ---------- */
+const app = $('#app');
+let cur = null, curAnswers = null;
+function show(html) { stopAll(); app.innerHTML = html; window.scrollTo(0, 0); }
+
+function streakInfo() {
+  const days = new Set(records().map(r => r.day));
+  let n = 0; const d = new Date();
+  if (!days.has(dayKey(d))) d.setDate(d.getDate() - 1);
+  while (days.has(dayKey(d))) { n++; d.setDate(d.getDate() - 1); }
+  return { streak: n, today: records().filter(r => r.day === dayKey()).length };
+}
+
+function goHome() {
+  cur = null;
+  const { streak, today } = streakInfo();
+  show(`
+    <div class="card row-flex" style="justify-content:space-between">
+      <div><b>${streak ? '🔥 ' + streak + '-day streak' : 'Start your streak today'}</b><br><span class="muted">${today} session${today === 1 ? '' : 's'} today</span></div>
+      <button class="btn" id="daily">📅 Daily challenge</button>
+    </div>
+    <div class="grid">${Object.entries(MODES).map(([id, m]) => `<button class="mode" data-id="${id}"><span class="ic">${m.icon}</span><b>${m.name}</b><span>${m.desc}</span></button>`).join('')}</div>`);
+  $$('.mode').forEach(b => b.onclick = () => goSetup(b.dataset.id));
+  $('#daily').onclick = () => {
+    const s = { count: 40, time: 120, group: 4, recallTime: 0 };
+    const seed = Math.floor(Date.now() / 864e5);
+    begin('digits', s, { seed, key: 'digits|daily:' + dayKey(), label: 'Daily challenge · 40 digits · 2m' });
+  };
+}
+
+function goSetup(id) {
+  const M = MODES[id], s = getSettings(id);
+  show(`
+    <div class="bar"><h2>${M.icon} ${M.name}</h2><button class="btn ghost small" id="back">← Menu</button></div>
+    <div class="card">
+      <p class="muted" style="margin-top:0">${M.desc}</p>
+      <div class="row-flex">${M.presets.map((p, i) => `<button class="chip" data-p="${i}">${p[0]}</button>`).join('')}<span class="hint">or customize:</span></div>
+      <div class="fields" id="fields"></div>
+      <p id="pb" class="muted"></p>
+      <div class="actions"><button class="btn" id="start">▶ Start</button></div>
+    </div>`);
+  const fieldsEl = $('#fields');
+  const drawFields = () => {
+    fieldsEl.innerHTML = M.fields.map(f => {
+      if (f.type === 'chk') return `<label class="chk"><input type="checkbox" data-k="${f.k}" ${s[f.k] ? 'checked' : ''}> ${f.label}</label>`;
+      if (f.type === 'sel') return `<label>${f.label}<select data-k="${f.k}">${f.opts.map(o => `<option value="${o}" ${String(s[f.k]) === String(o) ? 'selected' : ''}>${o}</option>`).join('')}</select></label>`;
+      return `<label>${f.label}<input type="number" data-k="${f.k}" min="${f.min}" max="${f.max}" value="${s[f.k]}"></label>`;
+    }).join('');
+    $$('[data-k]', fieldsEl).forEach(inp => inp.onchange = read);
+    pbLine();
+  };
+  const read = () => {
+    M.fields.forEach(f => {
+      const inp = $(`[data-k="${f.k}"]`, fieldsEl); if (!inp) return;
+      if (f.type === 'chk') s[f.k] = inp.checked;
+      else if (f.type === 'sel') s[f.k] = typeof f.def === 'number' ? +inp.value : inp.value;
+      else { let v = parseInt(inp.value, 10); if (isNaN(v)) v = f.def; s[f.k] = Math.min(f.max, Math.max(f.min, v)); inp.value = s[f.k]; }
+    });
+    saveSettings(id, s); pbLine();
+  };
+  const pbLine = () => {
+    const b = bestFor(keyOf(id, s));
+    $('#pb').innerHTML = `<b>${M.label(s)}</b><br>` + (b ? `🏆 Personal best: <b>${b.correct}/${b.total}</b> in ${b.mem}s` : 'No score for these settings yet.');
+  };
+  $$('.chip').forEach(c => c.onclick = () => { Object.assign(s, M.presets[+c.dataset.p][1]); saveSettings(id, s); drawFields(); });
+  $('#back').onclick = goHome;
+  $('#start').onclick = () => { read(); begin(id, { ...s }); };
+  drawFields();
+}
+
+function begin(id, s, opts = {}) {
+  const M = MODES[id];
+  const r = opts.seed != null ? mulberry32(opts.seed) : Math.random;
+  cur = { id, M, s, data: M.gen(s, r), key: opts.key || keyOf(id, s), label: opts.label || M.label(s), phase: 'countdown', memTime: 0 };
+  let n = 3;
+  const draw = () => {
+    show(`<div class="big">${n}</div><p class="center muted">${M.icon} ${M.name} — ${esc(cur.label)}</p>`);
+    if (n > 0) { n--; later(draw, 700); } else runMemorize();
+  };
+  n = 3; draw();
+}
+
+function runMemorize() {
+  const { M, s, data } = cur; cur.phase = 'memorize';
+  show(`<div class="bar"><h2>${M.icon} ${M.name}</h2><div class="timer" id="tm"></div></div>
+    <div class="card" id="stage"></div>
+    <div class="actions" id="act">${M.auto ? '' : '<button class="btn" id="skip">✅ I\'ve memorized it — skip the rest (Enter)</button>'}<button class="btn ghost" id="quit">Quit</button></div>`);
+  $('#quit').onclick = goHome;
+  const api = { done: () => finishMem() };
+  const t0 = performance.now();
+  cur.t0 = t0;
+  if (!M.auto) {
+    const tm = $('#tm'), upd = () => {
+      const left = s.time - (performance.now() - t0) / 1000;
+      tm.textContent = fmtClock(left); tm.classList.toggle('low', left <= 10);
+      if (left <= 0) finishMem(true);
+    };
+    upd(); every(upd, 100);
+    $('#skip').onclick = () => finishMem();
+  } else $('#tm').textContent = '';
+  M.memorize($('#stage'), data, s, api);
+}
+function finishMem(timeUp) {
+  if (!cur || cur.phase !== 'memorize') return;
+  const el = (performance.now() - cur.t0) / 1000;
+  cur.memTime = Math.round((timeUp ? cur.s.time : Math.min(el, cur.s.time || el)) * 10) / 10;
+  if (cur.M.auto) cur.memTime = Math.round(el * 10) / 10;
+  runRecall();
+}
+
+function runRecall() {
+  const { M, s, data } = cur; cur.phase = 'recall';
+  show(`<div class="bar"><h2>${M.icon} Recall</h2><div class="timer" id="tm"></div></div>
+    <div class="card" id="stage"></div>
+    <div class="actions"><button class="btn" id="submit">Check my answers (Ctrl+Enter)</button><button class="btn ghost" id="quit">Quit</button></div>`);
+  $('#quit').onclick = goHome;
+  $('#submit').onclick = submit;
+  cur.getAnswers = M.recall($('#stage'), data, s);
+  cur.r0 = performance.now();
+  if (s.recallTime > 0) {
+    const tm = $('#tm'), upd = () => {
+      const left = s.recallTime - (performance.now() - cur.r0) / 1000;
+      tm.textContent = fmtClock(left); tm.classList.toggle('low', left <= 10);
+      if (left <= 0) submit();
+    };
+    upd(); every(upd, 200);
+  }
+}
+
+function submit() {
+  if (!cur || cur.phase !== 'recall') return;
+  cur.phase = 'results';
+  const { M, s, data } = cur;
+  curAnswers = cur.getAnswers();
+  const recallSecs = Math.round((performance.now() - cur.r0) / 100) / 10;
+  const res = M.score(data, curAnswers, s);
+  const rec = { mode: cur.id, key: cur.key, label: cur.label, correct: res.correct, total: res.total, mem: cur.memTime, recall: recallSecs, date: new Date().toISOString(), day: dayKey() };
+  const prev = bestFor(cur.key), isPB = better(rec, prev) && res.correct > 0;
+  const all = records(); all.push(rec); store.set('mm.records', all.slice(-2000));
+  const pct = res.total ? Math.round(res.correct / res.total * 100) : 0;
+  const isDaily = cur.key.includes('daily:');
+  show(`
+    <div class="card center">
+      <div class="muted">${M.icon} ${esc(cur.label)}</div>
+      <div class="score">${res.correct} / ${res.total}</div>
+      <div class="muted">${pct}% correct · memorized in ${rec.mem}s · recalled in ${recallSecs}s</div>
+      ${isPB ? '<p><span class="pill">🏆 New personal best!</span></p>' : (prev ? `<p class="hint">Personal best: ${prev.correct}/${prev.total} in ${prev.mem}s</p>` : '')}
+    </div>
+    <div class="card">${res.html}</div>
+    <div class="actions">${isDaily ? '' : '<button class="btn" id="again">↻ Try again</button>'}<button class="btn ghost" id="setup">Change settings</button><button class="btn ghost" id="menu">Menu</button></div>`);
+  const sNow = { ...s };
+  if (!isDaily) $('#again').onclick = () => begin(cur.id, sNow);
+  $('#setup').onclick = () => goSetup(cur.id);
+  $('#menu').onclick = goHome;
+}
+
+function goStats() {
+  cur = null;
+  const recs = records();
+  const modeOpts = '<option value="">All modes</option>' + Object.entries(MODES).map(([id, m]) => `<option value="${id}">${m.name}</option>`).join('');
+  show(`
+    <div class="bar"><h2>📊 Stats</h2><button class="btn ghost small" id="back">← Menu</button></div>
+    <div class="card"><div class="row-flex" style="justify-content:space-between"><b>Progress (score %)</b><select id="mf">${modeOpts}</select></div><div id="chart"></div></div>
+    <div class="card"><b>🏆 Personal bests</b><div style="overflow-x:auto"><table><thead><tr><th>Mode / settings</th><th>Best</th><th>Time used</th><th>Tries</th></tr></thead><tbody id="pbs"></tbody></table></div></div>
+    <div class="card"><b>Recent sessions</b><div style="overflow-x:auto"><table><thead><tr><th>When</th><th>Settings</th><th>Score</th></tr></thead><tbody id="recent"></tbody></table></div></div>
+    <button class="btn ghost small" id="clear">Delete all data</button>`);
+  $('#back').onclick = goHome;
+  $('#clear').onclick = () => { if (confirm('Delete all saved scores and settings?')) { store.set('mm.records', []); store.set('mm.settings', {}); goStats(); } };
+  const draw = () => {
+    const f = $('#mf').value, list = recs.filter(r => !f || r.mode === f);
+    // chart
+    const pts = list.slice(-40).map(r => r.total ? r.correct / r.total * 100 : 0);
+    if (pts.length < 2) $('#chart').innerHTML = '<p class="muted">Play a couple of sessions to see your progress here.</p>';
+    else {
+      const W = 600, H = 160, p = 24, x = i => p + i * (W - 2 * p) / (pts.length - 1), y = v => H - p - v / 100 * (H - 2 * p);
+      $('#chart').innerHTML = `<svg class="chart" viewBox="0 0 ${W} ${H}">${[0, 50, 100].map(v => `<line x1="${p}" x2="${W - p}" y1="${y(v)}" y2="${y(v)}" stroke="var(--line)"/><text x="2" y="${y(v) + 4}" font-size="10" fill="var(--muted)">${v}</text>`).join('')}
+        <polyline fill="none" stroke="var(--accent)" stroke-width="2.5" points="${pts.map((v, i) => x(i) + ',' + y(v)).join(' ')}"/>${pts.map((v, i) => `<circle cx="${x(i)}" cy="${y(v)}" r="3.5" fill="var(--accent)"/>`).join('')}</svg>`;
+    }
+    // PBs
+    const groups = {};
+    list.forEach(r => { (groups[r.key] ||= []).push(r); });
+    const rows = Object.entries(groups).map(([k, rs]) => ({ k, label: rs[rs.length - 1].label, best: rs.reduce((b, r) => better(r, b) ? r : b, null), n: rs.length }));
+    $('#pbs').innerHTML = rows.length ? rows.map(r => `<tr><td>${esc(r.label)}</td><td>${r.best.correct}/${r.best.total}</td><td>${r.best.mem}s</td><td>${r.n}</td></tr>`).join('') : '<tr><td colspan="4" class="muted">Nothing yet.</td></tr>';
+    $('#recent').innerHTML = list.slice(-15).reverse().map(r => `<tr><td>${new Date(r.date).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}</td><td>${esc(r.label)}</td><td>${r.correct}/${r.total} <span class="muted">(${r.mem}s)</span></td></tr>`).join('') || '<tr><td colspan="3" class="muted">Nothing yet.</td></tr>';
+  };
+  $('#mf').onchange = draw; draw();
+}
+
+/* ---------- boot ---------- */
+(function () {
+  const t = store.get('mm.theme', null);
+  if (t) document.documentElement.dataset.theme = t;
+  else if (matchMedia('(prefers-color-scheme: dark)').matches) document.documentElement.dataset.theme = 'dark';
+  $('#themeBtn').onclick = () => { const n = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'; document.documentElement.dataset.theme = n; store.set('mm.theme', n); };
+  $('#logo').onclick = goHome; $('#statsBtn').onclick = goStats;
+  goHome();
+})();
+</script>
+</body>
+</html>
